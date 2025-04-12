@@ -1,20 +1,20 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState } from "react"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { BarChart3, Clock, FileText, Map, Menu, Search, X } from "lucide-react"
+import { useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { BarChart3, Clock, FileText, Map, Menu, Search, X } from "lucide-react";
 
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { ScrollArea } from "@/components/ui/scroll-area"
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface NavItem {
-  title: string
-  href: string
-  icon: React.ElementType
+  title: string;
+  href: string;
+  icon: React.ElementType;
 }
 
 const navItems: NavItem[] = [
@@ -43,11 +43,11 @@ const navItems: NavItem[] = [
     href: "/recipe-search",
     icon: Search,
   },
-]
+];
 
 export function Sidebar() {
-  const pathname = usePathname()
-  const [isOpen, setIsOpen] = useState(false)
+  const pathname = usePathname();
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
     <>
@@ -65,16 +65,10 @@ export function Sidebar() {
       {/* Sidebar */}
       <div
         className={cn(
-          "fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r bg-background transition-transform duration-300 md:translate-x-0",
-          isOpen ? "translate-x-0" : "-translate-x-full",
+          "fixed top-[60px] bottom-0 left-0 z-40 flex w-64 flex-col border-r bg-background transition-transform duration-300 md:translate-x-0",
+          isOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <div className="border-b px-4 py-6">
-          <Link href="/" className="flex items-center gap-2">
-            <BarChart3 className="h-6 w-6 text-green-600" />
-            <span className="text-xl font-bold">Budget Tracker</span>
-          </Link>
-        </div>
         <ScrollArea className="flex-1 py-4">
           <nav className="grid gap-1 px-2">
             {navItems.map((item) => (
@@ -84,7 +78,9 @@ export function Sidebar() {
                 onClick={() => setIsOpen(false)}
                 className={cn(
                   "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                  pathname === item.href ? "bg-green-50 text-green-700" : "hover:bg-muted",
+                  pathname === item.href
+                    ? "bg-green-50 text-green-700"
+                    : "hover:bg-muted"
                 )}
               >
                 <item.icon className="h-5 w-5" />
@@ -94,9 +90,9 @@ export function Sidebar() {
           </nav>
         </ScrollArea>
         <div className="border-t p-4">
-          <p className="text-xs text-muted-foreground">© 2023 Budget Tracker</p>
+          <p className="text-xs text-muted-foreground">© 2023 Penny Pilot</p>
         </div>
       </div>
     </>
-  )
+  );
 }

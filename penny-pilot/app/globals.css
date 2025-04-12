@@ -116,7 +116,54 @@
   * {
     @apply border-border outline-ring/50;
   }
+
+  /* The overlay scrollbar effect technique */
+  html {
+    overflow-y: scroll;
+  }
+
+  @supports (scrollbar-width: thin) {
+    html {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+    }
+
+    .dark html {
+      scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+    }
+  }
+
+  html,
+  body {
+    width: 100%;
+    overflow-x: hidden;
+  }
+
   body {
     @apply bg-background text-foreground;
+    /* The following margin-right creates the overlay effect by compensating for scrollbar width */
+    margin-right: calc(-1 * (100vw - 100%));
+    position: relative;
+  }
+
+  /* Webkit browsers like Chrome, Safari */
+  ::-webkit-scrollbar {
+    width: 10px;
+    background-color: transparent;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.2);
+    border: 3px solid transparent;
+    border-radius: 10px;
+    background-clip: content-box;
+  }
+
+  .dark ::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.2);
   }
 }

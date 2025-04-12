@@ -1,13 +1,15 @@
-"use client"
+"use client";
 
-import { useParams, useRouter } from "next/navigation"
-import { ArrowLeft } from "lucide-react"
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Purchase } from "@/components/purchase-history";
 
-// Mock data for purchase details
+// Mock data for purchase details - will be used as fallback
 const purchaseDetails = {
   "1": {
     id: "1",
@@ -81,7 +83,7 @@ const purchaseDetails = {
       { name: "Pain Reliever", price: 7.76 },
     ],
   },
-}
+};
 
 // Map labels to colors
 const labelColors: Record<string, string> = {
@@ -89,15 +91,78 @@ const labelColors: Record<string, string> = {
   Transportation: "bg-blue-100 text-blue-800",
   Entertainment: "bg-purple-100 text-purple-800",
   Health: "bg-green-100 text-green-800",
-}
+};
 
 export default function PurchaseDetailPage() {
-  const router = useRouter()
-  const { id } = useParams()
-  const purchaseId = Array.isArray(id) ? id[0] : id
+  const router = useRouter();
+  const { id } = useParams();
+  const purchaseId = Array.isArray(id) ? id[0] : id;
+  const [purchase, setPurchase] = useState<Purchase | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  // @ts-ignore - This is just mock data
-  const purchase = purchaseDetails[purchaseId]
+  // Load purchases from localStorage on mount and update when localStorage changes
+  useEffect(() => {
+    if (typeof window !== "undefined" && purchaseId) {
+      const loadFromLocalStorage = () => {
+        // Try to find the purchase in localStorage
+        const storedPurchases = localStorage.getItem("purchases");
+
+        if (storedPurchases) {
+          try {
+            const parsedPurchases: Purchase[] = JSON.parse(storedPurchases);
+            const foundPurchase = parsedPurchases.find(
+              (p) => p.id === purchaseId
+            );
+
+            if (foundPurchase) {
+              setPurchase(foundPurchase);
+              setLoading(false);
+              return true; // Indicate purchase was found
+            }
+          } catch (e) {
+            console.error("Error parsing purchases from localStorage:", e);
+          }
+        }
+        return false; // Indicate purchase was not found
+      };
+
+      // First try to load from localStorage
+      const found = loadFromLocalStorage();
+
+      // If not found in localStorage, use the mock data as a fallback
+      if (!found) {
+        // @ts-ignore - This is just mock data
+        const mockPurchase = purchaseDetails[purchaseId];
+        if (mockPurchase) {
+          setPurchase(mockPurchase);
+        }
+        setLoading(false);
+      }
+
+      // Listen for storage changes
+      const handleStorageChange = (e: StorageEvent) => {
+        if (e.key === "purchases") {
+          loadFromLocalStorage();
+        }
+      };
+
+      window.addEventListener("storage", handleStorageChange);
+      return () => {
+        window.removeEventListener("storage", handleStorageChange);
+      };
+    }
+  }, [purchaseId]);
+
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-6">
+        <Button variant="ghost" onClick={() => router.back()} className="mb-4">
+          <ArrowLeft className="mr-2 h-4 w-4" /> Back
+        </Button>
+        <p className="text-center py-8">Loading purchase details...</p>
+      </div>
+    );
+  }
 
   if (!purchase) {
     return (
@@ -107,15 +172,15 @@ export default function PurchaseDetailPage() {
         </Button>
         <p className="text-center py-8">Purchase not found</p>
       </div>
-    )
+    );
   }
 
-  const badgeClass = labelColors[purchase.label] || "bg-gray-100 text-gray-800"
+  const badgeClass = labelColors[purchase.label] || "bg-gray-100 text-gray-800";
   const formattedDate = new Date(purchase.date).toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",
     day: "numeric",
-  })
+  });
 
   return (
     <div className="container mx-auto px-4 py-6">
@@ -132,7 +197,9 @@ export default function PurchaseDetailPage() {
                 <p className="text-muted-foreground">{formattedDate}</p>
               </div>
               <div className="flex flex-col items-end gap-2">
-                <span className="text-2xl font-bold">${purchase.amount.toFixed(2)}</span>
+                <span className="text-2xl font-bold">
+                  ${purchase.amount.toFixed(2)}
+                </span>
                 <Badge className={badgeClass}>{purchase.label}</Badge>
               </div>
             </div>
@@ -153,15 +220,19 @@ export default function PurchaseDetailPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {purchase.items.map((item, index) => (
+                  {purchase.items?.map((item, index) => (
                     <tr key={index} className="border-t">
                       <td className="p-2">{item.name}</td>
-                      <td className="text-right p-2">${item.price.toFixed(2)}</td>
+                      <td className="text-right p-2">
+                        ${item.price.toFixed(2)}
+                      </td>
                     </tr>
                   ))}
                   <tr className="border-t bg-muted">
                     <td className="p-2 font-semibold">Total</td>
-                    <td className="text-right p-2 font-semibold">${purchase.amount.toFixed(2)}</td>
+                    <td className="text-right p-2 font-semibold">
+                      ${purchase.amount.toFixed(2)}
+                    </td>
                   </tr>
                 </tbody>
               </table>
@@ -170,5 +241,5 @@ export default function PurchaseDetailPage() {
         </Card>
       </div>
     </div>
-  )
+  );
 }

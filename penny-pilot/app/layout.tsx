@@ -11,8 +11,12 @@ import { DashboardHeader } from "@/components/dashboard-header";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Budget Tracker",
-  description: "Track your expenses and manage your budget",
+  title: "Penny Pilot",
+  description: "Smart budgeting and expense tracking app",
+  icons: {
+    icon: "/images/coin.ico",
+    apple: "/images/coin.ico",
+  },
 };
 
 export default function RootLayout({
@@ -21,11 +25,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" style={{ overflowY: "auto" }}>
       <body className={inter.className}>
         <div className="flex min-h-screen flex-col">
           <DashboardHeader />
-          <div className="flex flex-1">
+          <div className="flex flex-1 pt-[60px]">
             <Sidebar />
             <div className="flex-1 md:ml-64">{children}</div>
           </div>
