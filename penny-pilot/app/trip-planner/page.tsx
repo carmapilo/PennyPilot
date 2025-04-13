@@ -655,7 +655,7 @@ export default function TripPlannerPage() {
 
       {/* Create Trip Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
           <DialogHeader>
             <DialogTitle>Plan a New Trip</DialogTitle>
             <DialogDescription>
