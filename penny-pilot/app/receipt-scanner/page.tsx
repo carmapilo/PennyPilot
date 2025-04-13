@@ -86,7 +86,7 @@ export default function ReceiptScannerPage() {
       formData.append("receipt", file);
 
       // Send to backend API
-      const response = await fetch("http://127.0.0.1:8000/test", {
+      const response = await fetch("/api/scan-receipt", {
         method: "POST",
         body: formData,
       });
@@ -307,7 +307,7 @@ export default function ReceiptScannerPage() {
 
       {/* Confirmation Dialog */}
       <Dialog open={showConfirmation} onOpenChange={setShowConfirmation}>
-        <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col z-50 w-[95vw]">
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto flex flex-col fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[95vw] max-w-lg">
           <DialogHeader className="flex-shrink-0">
             <DialogTitle>Confirm Scanned Receipt</DialogTitle>
             <DialogDescription>
