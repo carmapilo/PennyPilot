@@ -91,6 +91,7 @@ export default function ReceiptScannerPage() {
         body: formData,
       });
 
+      console.log(response);
       if (!response.ok) {
         throw new Error("Failed to scan receipt");
       }
@@ -111,15 +112,19 @@ export default function ReceiptScannerPage() {
 
       console.log("Receipt Data:", receiptData); // Debug: log the receipt data
 
+      const receiptData: ReceiptData = await response.json();
+      console.log(receiptData);
+
       setScannedData(receiptData);
       setStoreName("Publix"); // Set default store name
+      // setStoreName(receiptData.store);
+      setStoreName("Publix");
 
       // Calculate total amount from items
       const totalAmount = receiptData.items.reduce(
         (sum, item) => sum + item.price,
         0
       );
-
       // Create a new purchase object
       const newPurchase = {
         id: Date.now().toString(), // Generate a unique ID
@@ -400,7 +405,8 @@ export default function ReceiptScannerPage() {
                       <tr className="border-t bg-muted">
                         <td className="p-2 font-semibold">Total</td>
                         <td className="text-right p-2 font-semibold">
-                          ${purchaseData?.amount?.toFixed(2) || "0.00"}
+                          ${purchaseData?.amount?.toFixed(2) || "0.00"}$
+                          {purchaseData?.amount?.toFixed(2)}
                         </td>
                       </tr>
                     </tbody>

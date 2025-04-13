@@ -2,11 +2,24 @@ from fastapi import FastAPI, UploadFile, File, Form
 from PIL import Image
 import numpy as np
 import cv2
+from fastapi.middleware.cors import CORSMiddleware
 
 from Scanner import function
 
 app = FastAPI()
 
+origins = [
+    "http://localhost:3001",
+    "http://127.0.0.1:3001"
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/")
 async def root():
