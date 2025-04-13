@@ -103,7 +103,7 @@ const tripApi = {
       // Call the backend API
       console.log("Sending request to API:", request); // Debug log
 
-      const response = await fetch("/api/trip/suggest-activities", {
+      const response = await fetch("http://127.0.0.1:8000/hobbies", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -785,7 +785,7 @@ export default function TripPlannerPage() {
 
       {/* Create Trip Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-[425px] fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+        <DialogContent className="sm:max-w-[425px] fixed top-1 left-70 transform -translate-x-1/2 -translate-y-1/2">
           <DialogHeader>
             <DialogTitle>Plan a New Trip</DialogTitle>
             <DialogDescription>
