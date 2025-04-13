@@ -419,7 +419,13 @@ export default function TripPlannerPage() {
                           </h3>
                           <p className="text-sm text-gray-500">
                             {safeFormatDate(event.date, "MMMM d, yyyy")} at{" "}
-                            {event.time} - {event.endTime || ""}
+                            {event.time && event.time.includes("T")
+                              ? event.time.split("T")[1].substring(0, 5)
+                              : event.time}{" "}
+                            -{" "}
+                            {event.endTime && event.endTime.includes("T")
+                              ? event.endTime.split("T")[1].substring(0, 5)
+                              : event.endTime || ""}
                           </p>
                         </div>
                         <Badge>${event.cost}</Badge>
