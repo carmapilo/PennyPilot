@@ -5,6 +5,7 @@ export interface Trip {
   name: string;
   destination: string;
   startDate: string;
+  endDate: string;
   description: string;
   budget: number;
   active?: boolean;
@@ -23,6 +24,7 @@ export interface TripEvent {
 export interface ActivityRequest {
   destination: string;
   startDate: string;
+  endDate: string;
   budget: number;
   interests: string;
 }

@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
-import { format, addDays, parseISO } from "date-fns";
+import { format, addDays, parseISO, differenceInDays } from "date-fns";
 import { ActivityRequest, TripEvent } from "@/lib/trip-types";
 
 export async function POST(request: Request) {
   try {
     // Parse request body
     const body: ActivityRequest = await request.json();
-    const { destination, startDate, budget, interests } = body;
+    const { destination, startDate, endDate, budget, interests = "" } = body;
 
-    if (!destination || !startDate || !budget || budget <= 0) {
+    if (!destination || !startDate || !endDate || !budget || budget <= 0) {
       return NextResponse.json(
         { error: "Missing required fields or invalid budget" },
         { status: 400 }
@@ -16,7 +16,13 @@ export async function POST(request: Request) {
     }
 
     // Generate events based on parameters
-    const events = generateEvents(destination, startDate, budget, interests);
+    const events = generateEvents(
+      destination,
+      startDate,
+      endDate,
+      budget,
+      interests || ""
+    );
 
     // Simulate API delay for realism
     await new Promise((resolve) => setTimeout(resolve, 500));
@@ -34,15 +40,36 @@ export async function POST(request: Request) {
 function generateEvents(
   destination: string,
   startDate: string,
+  endDate: string,
   budget: number,
-  interests: string
+  interests: string = ""
 ): TripEvent[] {
   const events: TripEvent[] = [];
   const baseDate = parseISO(startDate);
+  const lastDate = parseISO(endDate);
 
-  // Generate 3-7 random events
-  const eventCount = Math.floor(Math.random() * 5) + 3;
-  const interestArray = interests.split(",").map((i) => i.trim().toLowerCase());
+  // Calculate trip duration in days (at least 1)
+  const tripDuration = Math.max(1, differenceInDays(lastDate, baseDate) + 1);
+
+  // Distribute events across the entire trip duration
+  // Calculate how many events to generate based on trip duration and budget
+  const minEventsPerDay = 1;
+  const maxEventsPerDay = 3;
+  const totalEvents = Math.min(
+    // Calculate reasonable number of events based on trip duration
+    Math.floor(
+      tripDuration *
+        (Math.random() * (maxEventsPerDay - minEventsPerDay) + minEventsPerDay)
+    ),
+    // Ensure we don't generate too many low-cost events that would make no sense
+    Math.floor(budget / 10) + 1
+  );
+
+  // Safely parse interests string, provide empty array as fallback
+  const interestArray =
+    interests && typeof interests === "string"
+      ? interests.split(",").map((i) => i.trim().toLowerCase())
+      : [];
 
   const possibleEvents = [
     {
@@ -207,18 +234,25 @@ function generateEvents(
   }
 
   // Ensure we have enough events
-  while (filteredEvents.length < eventCount) {
+  while (filteredEvents.length < totalEvents) {
     filteredEvents.push(...allPossibleEvents);
   }
 
-  // Generate events over 3 days
-  for (let i = 0; i < eventCount; i++) {
-    const dayOffset = Math.floor(i / 3);
+  // Generate events spread across the trip duration
+  for (let i = 0; i < totalEvents; i++) {
+    // Distribute events evenly across the trip duration
+    const dayOffset = Math.floor((i / totalEvents) * tripDuration);
     const eventDate = addDays(baseDate, dayOffset);
+
+    // Make sure event date doesn't exceed the end date
+    if (differenceInDays(eventDate, lastDate) > 0) {
+      continue;
+    }
+
     const eventTemplate = filteredEvents[i % filteredEvents.length];
 
     // Random cost variation within budget constraints
-    const maxCost = Math.min((budget / eventCount) * 2, budget * 0.4);
+    const maxCost = Math.min((budget / totalEvents) * 2, budget * 0.4);
     const costVariation = Math.random() * 0.4 - 0.2; // +/- 20%
     const cost = Math.min(
       Math.round(eventTemplate.baseCost * (1 + costVariation)),

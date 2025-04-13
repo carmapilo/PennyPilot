@@ -16,30 +16,15 @@ import {
   Utensils,
   History,
   Edit,
+  MapPin,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { PurchaseItem } from "@/components/purchase-item";
 import { useEffect, useState } from "react";
 import { Purchase } from "@/components/purchase-history";
-
-// Mock data for upcoming trips
-const upcomingTrips = [
-  {
-    id: "trip1",
-    name: "New York City",
-    startDate: "2023-06-15",
-    endDate: "2023-06-20",
-    budget: 1800,
-  },
-  {
-    id: "trip2",
-    name: "San Francisco",
-    startDate: "2023-07-10",
-    endDate: "2023-07-15",
-    budget: 2200,
-  },
-];
+import { Trip } from "@/lib/trip-types";
+import { format, parseISO, isAfter } from "date-fns";
 
 // Mock data for recent recipes
 const recentRecipes = [
@@ -63,6 +48,7 @@ const recentRecipes = [
 
 export default function Home() {
   const [recentPurchases, setRecentPurchases] = useState<Purchase[]>([]);
+  const [nextTrip, setNextTrip] = useState<Trip | null>(null);
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -79,7 +65,46 @@ export default function Home() {
         console.error("Error parsing purchases:", e);
       }
     }
+
+    // Load trips from localStorage
+    const storedTrips = localStorage.getItem("trips");
+    if (storedTrips) {
+      try {
+        const allTrips: Trip[] = JSON.parse(storedTrips);
+
+        // Find the next upcoming trip (trips with startDate after today)
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Set to beginning of today
+
+        // Filter trips that haven't happened yet
+        const upcomingTrips = allTrips.filter((trip) => {
+          const tripDate = parseISO(trip.startDate);
+          return isAfter(tripDate, today) || isSameDay(tripDate, today);
+        });
+
+        // Sort by startDate
+        upcomingTrips.sort((a, b) => {
+          return (
+            parseISO(a.startDate).getTime() - parseISO(b.startDate).getTime()
+          );
+        });
+
+        // Set the next trip (first in the sorted list)
+        setNextTrip(upcomingTrips.length > 0 ? upcomingTrips[0] : null);
+      } catch (e) {
+        console.error("Error parsing trips:", e);
+      }
+    }
   }, []);
+
+  // Check if the date is today
+  function isSameDay(date1: Date, date2: Date): boolean {
+    return (
+      date1.getFullYear() === date2.getFullYear() &&
+      date1.getMonth() === date2.getMonth() &&
+      date1.getDate() === date2.getDate()
+    );
+  }
 
   const formatDate = (dateString: string) => {
     const options: Intl.DateTimeFormatOptions = {
@@ -88,9 +113,6 @@ export default function Home() {
     };
     return new Date(dateString).toLocaleDateString("en-US", options);
   };
-
-  // Get just the next upcoming trip
-  const nextTrip = upcomingTrips.length > 0 ? upcomingTrips[0] : null;
 
   return (
     <main className="container mx-auto px-4 py-6">
@@ -149,22 +171,27 @@ export default function Home() {
               <CardDescription>Your next planned trip</CardDescription>
             </CardHeader>
             <CardContent className="pb-0">
-              {nextTrip ? (
-                <div key={nextTrip.id} className="border-b pb-3">
-                  <div className="flex justify-between items-center">
+              {isClient && nextTrip ? (
+                <div className="border-b pb-3">
+                  <div className="flex justify-between items-start">
                     <div>
                       <p className="font-medium">{nextTrip.name}</p>
+                      <div className="flex items-center text-sm text-muted-foreground mb-1">
+                        <MapPin className="h-3.5 w-3.5 mr-1" />
+                        {nextTrip.destination}
+                      </div>
                       <p className="text-sm text-muted-foreground">
-                        {formatDate(nextTrip.startDate)} -{" "}
-                        {formatDate(nextTrip.endDate)}
+                        {format(parseISO(nextTrip.startDate), "MMM d, yyyy")}
                       </p>
                     </div>
-                    <p className="font-semibold">${nextTrip.budget}</p>
+                    <p className="font-semibold">
+                      ${nextTrip.budget.toFixed(2)}
+                    </p>
                   </div>
                 </div>
               ) : (
                 <p className="text-center py-2 text-muted-foreground">
-                  No upcoming trips
+                  {isClient ? "No upcoming trips" : "Loading trip data..."}
                 </p>
               )}
             </CardContent>
