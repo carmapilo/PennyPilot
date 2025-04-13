@@ -15,10 +15,9 @@ async def root():
 
 @app.post("/test")
 async def image_scanner(    
-    prompt: str = Form(...),
-    sketch: UploadFile = File(...),
+    receipt: UploadFile = File(...),
 ):
-    sketch_bytes = await sketch.read()
+    sketch_bytes = await receipt.read()
     nparr = np.frombuffer(sketch_bytes, np.uint8)
 
     sketch_img = cv2.imdecode(nparr, cv2.IMREAD_COLOR) 
