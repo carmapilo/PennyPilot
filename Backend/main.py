@@ -9,6 +9,7 @@ from datetime import date
 
 from Scanner import function
 from hobbies import generate_hobbies
+from Recipe import generate_ingredients
 
 app = FastAPI()
 
@@ -18,6 +19,10 @@ class ActivityRequest(BaseModel):
     endDate: date
     budget: float
     interests: str
+
+
+class RecipeInstructionsRequest(BaseModel):
+    recipeInstructions: str
 
 
 
@@ -59,6 +64,10 @@ async def image_scanner(
 async def suggest_activities(request: ActivityRequest):
     return generate_hobbies(request.startDate, request.endDate, request.destination, request.budget, request.interests)
     
+
+@app.post("/ingredients")
+async def suggest_activities(request: RecipeInstructionsRequest):
+    return generate_ingredients(request.recipeInstructions)
     
 
 

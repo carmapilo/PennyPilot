@@ -157,7 +157,7 @@ export default function RecipeSearchPage() {
 
     try {
       // Call the API to get ingredients
-      const response = await fetch("/api/ingredients", {
+      const response = await fetch("http://127.0.0.1:8000/ingredients", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
