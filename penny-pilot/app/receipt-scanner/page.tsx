@@ -112,13 +112,8 @@ export default function ReceiptScannerPage() {
 
       console.log("Receipt Data:", receiptData); // Debug: log the receipt data
 
-      const receiptData: ReceiptData = await response.json();
-      console.log(receiptData);
-
       setScannedData(receiptData);
       setStoreName("Publix"); // Set default store name
-      // setStoreName(receiptData.store);
-      setStoreName("Publix");
 
       // Calculate total amount from items
       const totalAmount = receiptData.items.reduce(
@@ -405,8 +400,7 @@ export default function ReceiptScannerPage() {
                       <tr className="border-t bg-muted">
                         <td className="p-2 font-semibold">Total</td>
                         <td className="text-right p-2 font-semibold">
-                          ${purchaseData?.amount?.toFixed(2) || "0.00"}$
-                          {purchaseData?.amount?.toFixed(2)}
+                          ${purchaseData?.amount?.toFixed(2) || "0.00"}
                         </td>
                       </tr>
                     </tbody>
