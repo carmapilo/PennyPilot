@@ -307,7 +307,7 @@ export default function ReceiptScannerPage() {
 
       {/* Confirmation Dialog */}
       <Dialog open={showConfirmation} onOpenChange={setShowConfirmation}>
-        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto flex flex-col fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[95vw] max-w-lg">
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto flex flex-col fixed top-10 left-80 transform w-[95vw] max-w-lg">
           <DialogHeader className="flex-shrink-0">
             <DialogTitle>Confirm Scanned Receipt</DialogTitle>
             <DialogDescription>
