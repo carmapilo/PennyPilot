@@ -3,10 +3,22 @@ from PIL import Image
 import numpy as np
 import cv2
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from typing import List
+from datetime import date
 
 from Scanner import function
+from hobbies import generate_hobbies
 
 app = FastAPI()
+
+class ActivityRequest(BaseModel):
+    destination: str
+    startDate: date
+    endDate: date
+    budget: float
+    interests: List[str]
+
 
 origins = [
     "http://localhost:3001",
@@ -41,4 +53,11 @@ async def image_scanner(
     text = function(sketch_img)
 
     return text
+
+@app.post("/hobbies")
+async def suggest_activities(request: ActivityRequest):
+    return generate_hobbies(request.startDate, request.endDate, request.destination, request.budget, request.interests)
+    
+    
+
 
