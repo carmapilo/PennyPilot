@@ -17,7 +17,7 @@ class ActivityRequest(BaseModel):
     startDate: date
     endDate: date
     budget: float
-    interests: List[str]
+    interests: str
 
 
 

@@ -110,10 +110,10 @@ const tripApi = {
         },
         body: JSON.stringify({
           destination: request.destination,
-          start_date: request.startDate, // Changed to match backend expectation
-          end_date: request.endDate, // Changed to match backend expectation
+          startDate: request.startDate, // Changed to match backend expectation
+          endDate: request.endDate, // Changed to match backend expectation
           budget: Number(request.budget), // Ensure this is a number
-          interests: request.interests || [],
+          interests: request.interests || "",
         }),
       });
 
