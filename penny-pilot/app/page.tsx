@@ -26,30 +26,20 @@ import { Purchase } from "@/components/purchase-history";
 import { Trip } from "@/lib/trip-types";
 import { format, parseISO, isAfter } from "date-fns";
 
-// Mock data for recent recipes
-const recentRecipes = [
-  {
-    id: "recipe1",
-    name: "Spaghetti Carbonara",
-    cuisine: "Italian",
-    prepTime: "25 mins",
-    image:
-      "https://images.unsplash.com/photo-1600803907087-f56d462fd26b?q=80&w=1974&auto=format&fit=crop",
-  },
-  {
-    id: "recipe2",
-    name: "Chicken Tikka Masala",
-    cuisine: "Indian",
-    prepTime: "45 mins",
-    image:
-      "https://images.unsplash.com/photo-1565557623262-b51c2513a641?q=80&w=2071&auto=format&fit=crop",
-  },
-];
+// Define recipe type
+interface Recipe {
+  id: string;
+  name: string;
+  instructions: string;
+  createdAt: string;
+  ingredients: string[];
+}
 
 export default function Home() {
   const [recentPurchases, setRecentPurchases] = useState<Purchase[]>([]);
   const [nextTrip, setNextTrip] = useState<Trip | null>(null);
   const [isClient, setIsClient] = useState(false);
+  const [recentRecipes, setRecentRecipes] = useState<Recipe[]>([]);
 
   useEffect(() => {
     // Set isClient to true once component mounts - this ensures we only render client-specific content after hydration
@@ -93,6 +83,23 @@ export default function Home() {
         setNextTrip(upcomingTrips.length > 0 ? upcomingTrips[0] : null);
       } catch (e) {
         console.error("Error parsing trips:", e);
+      }
+    }
+
+    // Load recipes from localStorage
+    const storedRecipes = localStorage.getItem("recipes");
+    if (storedRecipes) {
+      try {
+        const allRecipes: Recipe[] = JSON.parse(storedRecipes);
+        // Sort by creation date (newest first)
+        allRecipes.sort((a, b) => {
+          return (
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+        });
+        setRecentRecipes(allRecipes.slice(0, 3)); // Get 3 most recent recipes
+      } catch (e) {
+        console.error("Error parsing recipes:", e);
       }
     }
   }, []);
@@ -264,26 +271,35 @@ export default function Home() {
             </CardHeader>
             <CardContent className="p-3">
               <div className="space-y-3">
-                {recentRecipes.map((recipe) => (
-                  <div
-                    key={recipe.id}
-                    className="flex h-16 overflow-hidden border rounded-md"
-                  >
+                {!isClient ? (
+                  <div className="py-4 text-center text-muted-foreground">
+                    Loading recipes...
+                  </div>
+                ) : recentRecipes.length > 0 ? (
+                  recentRecipes.map((recipe) => (
                     <div
-                      className="w-1/3 bg-cover bg-center"
-                      style={{ backgroundImage: `url(${recipe.image})` }}
-                    ></div>
-                    <div className="w-2/3 p-2">
-                      <h3 className="font-medium text-sm line-clamp-1">
-                        {recipe.name}
-                      </h3>
-                      <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                        <span>{recipe.cuisine}</span>
-                        <span>{recipe.prepTime}</span>
+                      key={recipe.id}
+                      className="flex flex-col overflow-hidden border rounded-md p-3"
+                    >
+                      <div className="w-full">
+                        <h3 className="font-medium text-sm line-clamp-1">
+                          {recipe.name}
+                        </h3>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          <p className="line-clamp-2">{recipe.instructions}</p>
+                        </div>
+                        <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                          <span>{recipe.ingredients.length} ingredients</span>
+                          <span>{formatDate(recipe.createdAt)}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <p className="text-center py-4 text-muted-foreground">
+                    No recipes found
+                  </p>
+                )}
               </div>
             </CardContent>
             <CardFooter className="pt-1 pb-3">

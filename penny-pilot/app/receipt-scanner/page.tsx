@@ -85,8 +85,8 @@ export default function ReceiptScannerPage() {
       const formData = new FormData();
       formData.append("receipt", file);
 
-      // Send to backend API
-      const response = await fetch("http://127.0.0.1:8000/test", {
+      // Send to backend API - updated to use the internal API route
+      const response = await fetch("/api/scan-receipt", {
         method: "POST",
         body: formData,
       });
@@ -151,7 +151,7 @@ export default function ReceiptScannerPage() {
     const updatedPurchase = {
       ...purchaseData,
       label: selectedLabel,
-      name: storeName,
+      name: purchaseData.name, // Use the potentially edited name
       store: storeName,
     };
 
@@ -307,7 +307,7 @@ export default function ReceiptScannerPage() {
 
       {/* Confirmation Dialog */}
       <Dialog open={showConfirmation} onOpenChange={setShowConfirmation}>
-        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto flex flex-col fixed top-[10%] left-[35%] translate-x-[-50%] translate-y-[-50%] w-[95vw] max-w-lg"> 
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto flex flex-col fixed top-[30%] left-[35%] translate-x-[-50%] translate-y-[-50%] w-[95vw] max-w-lg">
           <DialogHeader className="flex-shrink-0">
             <DialogTitle>Confirm Scanned Receipt</DialogTitle>
             <DialogDescription>
@@ -350,6 +350,23 @@ export default function ReceiptScannerPage() {
                     {storeName}
                   </div>
                 )}
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="name">Purchase Name</Label>
+                </div>
+                <Input
+                  id="name"
+                  value={purchaseData.name}
+                  onChange={(e) =>
+                    setPurchaseData({
+                      ...purchaseData,
+                      name: e.target.value,
+                    })
+                  }
+                  placeholder="Enter purchase name"
+                />
               </div>
 
               <div className="grid gap-2">

@@ -51,16 +51,7 @@ export function Sidebar() {
 
   return (
     <>
-      {/* Mobile Menu Button */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="md:hidden fixed left-4 top-3 z-50 text-white"
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        <span className="sr-only">Toggle Menu</span>
-      </Button>
+      {/* Mobile Menu Button - Removed from here as it will be placed in the dashboard header */}
 
       {/* Sidebar */}
       <div
