@@ -101,6 +101,8 @@ const tripApi = {
   async suggestActivities(request: ActivityRequest): Promise<TripEvent[]> {
     try {
       // Call the backend API
+      console.log("Sending request to API:", request); // Debug log
+
       const response = await fetch("http://127.0.0.1:8000/hobbies", {
         method: "POST",
         headers: {
@@ -108,18 +110,21 @@ const tripApi = {
         },
         body: JSON.stringify({
           destination: request.destination,
-          startDate: request.startDate,
-          endDate: request.endDate,
-          budget: request.budget,
-          interests: request.interests || "",
+          start_date: request.startDate, // Changed to match backend expectation
+          end_date: request.endDate, // Changed to match backend expectation
+          budget: Number(request.budget), // Ensure this is a number
+          interests: request.interests || [],
         }),
       });
 
       if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
+        const errorText = await response.text();
+        console.error("API error details:", errorText);
+        throw new Error(`API error: ${response.status} - ${errorText}`);
       }
 
       const data = await response.json();
+      console.log("API response:", data); // Debug log
 
       // Transform the response to match our TripEvent type
       return data.map((item: any, index: number) => ({
@@ -655,7 +660,7 @@ export default function TripPlannerPage() {
 
       {/* Create Trip Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-[425px] fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+        <DialogContent className="sm:max-w-[425px] fixed top-1 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
           <DialogHeader>
             <DialogTitle>Plan a New Trip</DialogTitle>
             <DialogDescription>
