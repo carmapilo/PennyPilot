@@ -103,16 +103,16 @@ const tripApi = {
       // Call the backend API
       console.log("Sending request to API:", request); // Debug log
 
-      const response = await fetch("http://127.0.0.1:8000/hobbies", {
+      const response = await fetch("/api/trip/suggest-activities", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           destination: request.destination,
-          startDate: request.startDate, // Changed to match backend expectation
-          endDate: request.endDate, // Changed to match backend expectation
-          budget: Number(request.budget), // Ensure this is a number
+          startDate: request.startDate,
+          endDate: request.endDate,
+          budget: Number(request.budget),
           interests: request.interests || "",
         }),
       });
@@ -134,6 +134,7 @@ const tripApi = {
         description: item.description,
         date: item.date,
         time: item.start_time,
+        endTime: item.end_time,
         cost: item.approximate_cost,
       }));
     } catch (error) {
@@ -173,6 +174,34 @@ export default function TripPlannerPage() {
   const [loading, setLoading] = useState(false);
   const [weekDays, setWeekDays] = useState<React.ReactElement[]>([]);
   const [weekStart, setWeekStart] = useState<Date>(new Date());
+
+  // Define time slots for the calendar
+  const timeSlots = [
+    "00:00",
+    "01:00",
+    "02:00",
+    "03:00",
+    "04:00",
+    "05:00",
+    "06:00",
+    "07:00",
+    "08:00",
+    "09:00",
+    "10:00",
+    "11:00",
+    "12:00",
+    "13:00",
+    "14:00",
+    "15:00",
+    "16:00",
+    "17:00",
+    "18:00",
+    "19:00",
+    "20:00",
+    "21:00",
+    "22:00",
+    "23:00",
+  ];
 
   // Form state
   const [tripName, setTripName] = useState("");
@@ -250,6 +279,7 @@ export default function TripPlannerPage() {
       activeTrips.includes(event.tripId)
     );
 
+    // Create day columns
     for (let i = 0; i < 7; i++) {
       const day = addDays(start, i);
       const formattedDate = format(day, "yyyy-MM-dd");
@@ -279,23 +309,98 @@ export default function TripPlannerPage() {
               {format(day, "MMM d")}
             </div>
           </div>
-          <div className="h-[calc(100%-3rem)] overflow-y-auto p-1 space-y-1">
+
+          <div className="relative h-[500px]">
+            {timeSlots.map((timeSlot, index) => (
+              <div
+                key={`${formattedDate}-${timeSlot}`}
+                className="absolute w-full border-b border-gray-100"
+                style={{
+                  top: `${(index * 500) / timeSlots.length}px`,
+                  height: `${500 / timeSlots.length}px`,
+                }}
+              />
+            ))}
+
             {eventsOnDay.map((event) => {
               // Find the parent trip for this event
               const parentTrip = trips.find((trip) => trip.id === event.tripId);
+
+              // Parse the event time to get hour for positioning (military time)
+              let eventStartHour = 0;
+              let eventEndHour = 0;
+              try {
+                // Parse start time
+                const startTimeParts = event.time.split(":");
+                eventStartHour = parseInt(startTimeParts[0]);
+                // Convert to 24-hour if needed
+                if (event.time.includes("PM") && eventStartHour < 12) {
+                  eventStartHour += 12;
+                } else if (event.time.includes("AM") && eventStartHour === 12) {
+                  eventStartHour = 0;
+                }
+
+                // Parse end time
+                if (event.endTime) {
+                  const endTimeParts = event.endTime.split(":");
+                  eventEndHour = parseInt(endTimeParts[0]);
+                  // Convert to 24-hour if needed
+                  if (event.endTime.includes("PM") && eventEndHour < 12) {
+                    eventEndHour += 12;
+                  } else if (
+                    event.endTime.includes("AM") &&
+                    eventEndHour === 12
+                  ) {
+                    eventEndHour = 0;
+                  }
+                } else {
+                  // Default to 1 hour if no end time
+                  eventEndHour = (eventStartHour + 1) % 24;
+                }
+              } catch (error) {
+                console.error("Error parsing event time:", error);
+                // Default to 1 hour duration
+                eventEndHour = (eventStartHour + 1) % 24;
+              }
+
+              // Find the closest hour slot for start and end
+              const startTimeIndex = timeSlots.findIndex((slot) => {
+                return parseInt(slot.split(":")[0]) === eventStartHour;
+              });
+
+              const endTimeIndex = timeSlots.findIndex((slot) => {
+                return parseInt(slot.split(":")[0]) === eventEndHour;
+              });
+
+              // Calculate position and height
+              const position = startTimeIndex >= 0 ? startTimeIndex : 0;
+              // Calculate event height (minimum 1 slot)
+              let heightInSlots = 1;
+              if (endTimeIndex >= 0) {
+                // If end is before start (event spans across midnight)
+                if (endTimeIndex <= startTimeIndex) {
+                  heightInSlots =
+                    timeSlots.length - startTimeIndex + endTimeIndex;
+                } else {
+                  heightInSlots = endTimeIndex - startTimeIndex;
+                }
+              }
+
+              // Ensure minimum height
+              heightInSlots = Math.max(1, heightInSlots);
 
               return (
                 <Popover key={event.id}>
                   <PopoverTrigger asChild>
                     <div
-                      className="text-xs p-2 rounded bg-blue-100 hover:bg-blue-200 cursor-pointer transition-colors"
+                      className="absolute text-xs px-2 py-1 rounded bg-blue-100 hover:bg-blue-200 cursor-pointer transition-colors w-[95%] left-[2.5%] overflow-hidden"
                       style={{
                         borderLeft: `3px solid ${getTripColor(event.tripId)}`,
+                        top: `${(position * 500) / timeSlots.length}px`,
+                        height: `${(heightInSlots * 500) / timeSlots.length}px`,
                       }}
                     >
-                      <div className="font-medium truncate">
-                        {event.time} - {event.title}
-                      </div>
+                      <div className="font-medium truncate">{event.title}</div>
                       <div className="flex justify-between items-center mt-1">
                         <span className="truncate text-[10px] text-gray-600">
                           {parentTrip?.name || "Unknown Trip"}
@@ -304,6 +409,7 @@ export default function TripPlannerPage() {
                       </div>
                     </div>
                   </PopoverTrigger>
+
                   <PopoverContent className="w-80 p-0">
                     <div className="p-4">
                       <div className="flex justify-between items-start">
@@ -313,7 +419,7 @@ export default function TripPlannerPage() {
                           </h3>
                           <p className="text-sm text-gray-500">
                             {safeFormatDate(event.date, "MMMM d, yyyy")} at{" "}
-                            {event.time}
+                            {event.time} - {event.endTime || ""}
                           </p>
                         </div>
                         <Badge>${event.cost}</Badge>
@@ -535,7 +641,26 @@ export default function TripPlannerPage() {
 
       {/* Weekly Calendar View */}
       <div className="mb-6 border border-gray-200 rounded-lg overflow-hidden shadow-sm bg-white h-[600px] flex flex-col">
-        <div className="flex-1 flex">{weekDays}</div>
+        <div className="flex">
+          {/* Time labels column */}
+          <div className="w-20 border-r border-gray-200">
+            <div className="h-12 border-b border-gray-200"></div>
+            <div className="h-[500px] relative">
+              {timeSlots.map((time: string, index: number) => (
+                <div
+                  key={time}
+                  className="absolute left-0 w-full text-xs text-gray-500 pl-1"
+                  style={{
+                    top: `${(index * 500) / timeSlots.length}px`,
+                  }}
+                >
+                  {time}
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="flex-1 flex">{weekDays}</div>
+        </div>
       </div>
 
       {/* Trip Budget Summary */}
@@ -660,7 +785,7 @@ export default function TripPlannerPage() {
 
       {/* Create Trip Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-[425px] fixed top-1 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+        <DialogContent className="sm:max-w-[425px] fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
           <DialogHeader>
             <DialogTitle>Plan a New Trip</DialogTitle>
             <DialogDescription>

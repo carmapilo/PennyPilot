@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Trash2, Edit, X, Check } from "lucide-react";
+import { Search, Trash2, Edit, X, Check, PlusCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { PurchaseItem } from "@/components/purchase-item";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,25 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 
 // Interface for Purchase type
 export interface Purchase {
@@ -81,6 +100,17 @@ export function PurchaseHistory({ limit }: PurchaseHistoryProps) {
     null
   );
   const [isEditMode, setIsEditMode] = useState(false);
+  const [addPurchaseOpen, setAddPurchaseOpen] = useState(false);
+
+  // New purchase form state
+  const [newPurchaseName, setNewPurchaseName] = useState("");
+  const [newPurchaseDate, setNewPurchaseDate] = useState(
+    new Date().toISOString().split("T")[0]
+  );
+  const [newPurchaseAmount, setNewPurchaseAmount] = useState("");
+  const [newPurchaseLabel, setNewPurchaseLabel] = useState("Food");
+  const [newPurchaseStore, setNewPurchaseStore] = useState("");
+  const [newPurchaseItems, setNewPurchaseItems] = useState("");
 
   // Load purchases from localStorage on mount and update when localStorage changes
   useEffect(() => {
@@ -191,6 +221,71 @@ export function PurchaseHistory({ limit }: PurchaseHistoryProps) {
     setIsEditMode(!isEditMode);
   };
 
+  const addNewPurchase = () => {
+    const amount = parseFloat(newPurchaseAmount);
+    if (!newPurchaseName || isNaN(amount)) return;
+
+    // Parse items from textarea (format: item name: price)
+    let parsedItems: { name: string; price: number }[] = [];
+    if (newPurchaseItems.trim()) {
+      // Check if input contains spaces but no newlines - treat as space-separated items
+      if (!newPurchaseItems.includes("\n") && newPurchaseItems.includes(" ")) {
+        parsedItems = newPurchaseItems
+          .split(" ")
+          .filter((item) => item.trim() && item.includes(":"))
+          .map((item) => {
+            const parts = item.split(":");
+            const name = parts[0].trim();
+            const priceText = parts.length > 1 ? parts[1].trim() : "";
+            const price = priceText ? parseFloat(priceText) : 0;
+            return { name, price: isNaN(price) ? 0 : price };
+          });
+      } else {
+        // Original logic for newline-separated items
+        parsedItems = newPurchaseItems
+          .split("\n")
+          .filter((line) => line.trim())
+          .map((line) => {
+            const parts = line.split(":");
+            const name = parts[0].trim();
+            // Handle case where price might not be included
+            const priceText = parts.length > 1 ? parts[1].trim() : "";
+            const price = priceText ? parseFloat(priceText) : 0;
+            return { name, price: isNaN(price) ? 0 : price };
+          });
+      }
+    }
+
+    // Create new purchase
+    const newPurchase: Purchase = {
+      id: `purchase-${Date.now()}`,
+      name: newPurchaseName,
+      date: newPurchaseDate,
+      amount: amount,
+      label: newPurchaseLabel,
+      store: newPurchaseStore || undefined,
+      items: parsedItems.length > 0 ? parsedItems : undefined,
+    };
+
+    // Add to purchases list
+    const updatedPurchases = [newPurchase, ...purchases];
+    setPurchases(updatedPurchases);
+    localStorage.setItem("purchases", JSON.stringify(updatedPurchases));
+
+    // Clear form and close dialog
+    resetNewPurchaseForm();
+    setAddPurchaseOpen(false);
+  };
+
+  const resetNewPurchaseForm = () => {
+    setNewPurchaseName("");
+    setNewPurchaseDate(new Date().toISOString().split("T")[0]);
+    setNewPurchaseAmount("");
+    setNewPurchaseLabel("Food");
+    setNewPurchaseStore("");
+    setNewPurchaseItems("");
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center mb-4">
@@ -204,24 +299,35 @@ export function PurchaseHistory({ limit }: PurchaseHistoryProps) {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        <Button
-          variant={isEditMode ? "destructive" : "outline"}
-          size="sm"
-          onClick={toggleEditMode}
-          className="flex items-center gap-1.5"
-        >
-          {isEditMode ? (
-            <>
-              <X className="h-4 w-4" />
-              Done
-            </>
-          ) : (
-            <>
-              <Edit className="h-4 w-4" />
-              Edit
-            </>
-          )}
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setAddPurchaseOpen(true)}
+            className="flex items-center gap-1.5"
+          >
+            <PlusCircle className="h-4 w-4" />
+            Add Purchase
+          </Button>
+          <Button
+            variant={isEditMode ? "destructive" : "outline"}
+            size="sm"
+            onClick={toggleEditMode}
+            className="flex items-center gap-1.5"
+          >
+            {isEditMode ? (
+              <>
+                <X className="h-4 w-4" />
+                Done
+              </>
+            ) : (
+              <>
+                <Edit className="h-4 w-4" />
+                Edit
+              </>
+            )}
+          </Button>
+        </div>
       </div>
 
       <div className="space-y-2">
@@ -272,6 +378,114 @@ export function PurchaseHistory({ limit }: PurchaseHistoryProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={addPurchaseOpen} onOpenChange={setAddPurchaseOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Add New Purchase</DialogTitle>
+            <DialogDescription>
+              Enter the details of your purchase below.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="name">Purchase Name</Label>
+              <Input
+                id="name"
+                placeholder="Grocery Shopping"
+                value={newPurchaseName}
+                onChange={(e) => setNewPurchaseName(e.target.value)}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="date">Date</Label>
+                <Input
+                  id="date"
+                  type="date"
+                  value={newPurchaseDate}
+                  onChange={(e) => setNewPurchaseDate(e.target.value)}
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="amount">Amount ($)</Label>
+                <Input
+                  id="amount"
+                  type="number"
+                  placeholder="0.00"
+                  step="0.01"
+                  value={newPurchaseAmount}
+                  onChange={(e) => setNewPurchaseAmount(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="label">Category</Label>
+                <Select
+                  value={newPurchaseLabel}
+                  onValueChange={setNewPurchaseLabel}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value="Food">Food</SelectItem>
+                      <SelectItem value="Transportation">
+                        Transportation
+                      </SelectItem>
+                      <SelectItem value="Entertainment">
+                        Entertainment
+                      </SelectItem>
+                      <SelectItem value="Health">Health</SelectItem>
+                      <SelectItem value="Shopping">Shopping</SelectItem>
+                      <SelectItem value="Utilities">Utilities</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="store">Store (Optional)</Label>
+                <Input
+                  id="store"
+                  placeholder="Store name"
+                  value={newPurchaseStore}
+                  onChange={(e) => setNewPurchaseStore(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="items">
+                Items (Optional, one per line: item name: price)
+              </Label>
+              <Textarea
+                id="items"
+                placeholder="Apples: 3.99&#10;Bread: 4.50&#10;Milk: 2.99"
+                value={newPurchaseItems}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                  setNewPurchaseItems(e.target.value)
+                }
+                className="min-h-[100px]"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddPurchaseOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={addNewPurchase}>Add Purchase</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

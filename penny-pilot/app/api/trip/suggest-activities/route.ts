@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { format, addDays, parseISO, differenceInDays } from "date-fns";
-import { ActivityRequest, TripEvent } from "@/lib/trip-types";
+import { ActivityRequest } from "@/lib/trip-types";
 
 export async function POST(request: Request) {
   try {
@@ -16,7 +16,7 @@ export async function POST(request: Request) {
     }
 
     // Generate events based on parameters
-    const events = generateEvents(
+    const mockActivities = generateMockActivities(
       destination,
       startDate,
       endDate,
@@ -27,7 +27,8 @@ export async function POST(request: Request) {
     // Simulate API delay for realism
     await new Promise((resolve) => setTimeout(resolve, 500));
 
-    return NextResponse.json({ events });
+    // Return the array directly as expected by the client
+    return NextResponse.json(mockActivities);
   } catch (error) {
     console.error("Error in trip suggestion API:", error);
     return NextResponse.json(
@@ -37,14 +38,24 @@ export async function POST(request: Request) {
   }
 }
 
-function generateEvents(
+// Interface to match what the client expects
+interface MockActivity {
+  location: string;
+  description: string;
+  date: string;
+  start_time: string;
+  end_time: string;
+  approximate_cost: number;
+}
+
+function generateMockActivities(
   destination: string,
   startDate: string,
   endDate: string,
   budget: number,
   interests: string = ""
-): TripEvent[] {
-  const events: TripEvent[] = [];
+): MockActivity[] {
+  const activities: MockActivity[] = [];
   const baseDate = parseISO(startDate);
   const lastDate = parseISO(endDate);
 
@@ -259,23 +270,29 @@ function generateEvents(
       maxCost
     );
 
-    // Generate a random time
-    const hour = 9 + Math.floor(Math.random() * 10); // Between 9 AM and 7 PM
+    // Generate a random time in 24-hour format
+    const hour = Math.floor(Math.random() * 24); // 0-23 hours
     const minute = Math.floor(Math.random() * 4) * 15; // 0, 15, 30, or 45 minutes
-    const time = `${hour.toString().padStart(2, "0")}:${minute
+    const start_time = `${hour.toString().padStart(2, "0")}:${minute
       .toString()
       .padStart(2, "0")}`;
 
-    events.push({
-      id: `event-${i + 1}`,
-      tripId: "pending", // Will be replaced with actual trip ID by the client
-      title: eventTemplate.title,
+    // Generate end time (1-2 hours after start time)
+    const durationHours = 1 + Math.floor(Math.random() * 2); // 1 or 2 hours
+    const endHour = (hour + durationHours) % 24;
+    const end_time = `${endHour.toString().padStart(2, "0")}:${minute
+      .toString()
+      .padStart(2, "0")}`;
+
+    activities.push({
+      location: eventTemplate.title,
       description: eventTemplate.description,
       date: format(eventDate, "yyyy-MM-dd"),
-      time: time,
-      cost: cost,
+      start_time: start_time,
+      end_time: end_time,
+      approximate_cost: cost,
     });
   }
 
-  return events;
+  return activities;
 }

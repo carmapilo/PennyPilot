@@ -2,12 +2,20 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ArrowUp, ArrowDown } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Purchase } from "@/components/purchase-history";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  format,
+  startOfMonth,
+  subMonths,
+  isWithinInterval,
+  parseISO,
+} from "date-fns";
 
 // Mock data for purchase details - will be used as fallback
 const purchaseDetails = {
@@ -99,6 +107,17 @@ export default function PurchaseDetailPage() {
   const purchaseId = Array.isArray(id) ? id[0] : id;
   const [purchase, setPurchase] = useState<Purchase | null>(null);
   const [loading, setLoading] = useState(true);
+  const [allPurchases, setAllPurchases] = useState<Purchase[]>([]);
+  const [storeTotals, setStoreTotals] = useState<{
+    currentMonth: number;
+    previousMonth: number;
+    twoMonthsAgo: number;
+  }>({ currentMonth: 0, previousMonth: 0, twoMonthsAgo: 0 });
+  const [categoryTotals, setCategoryTotals] = useState<{
+    currentMonth: number;
+    previousMonth: number;
+    twoMonthsAgo: number;
+  }>({ currentMonth: 0, previousMonth: 0, twoMonthsAgo: 0 });
 
   // Load purchases from localStorage on mount and update when localStorage changes
   useEffect(() => {
@@ -110,6 +129,8 @@ export default function PurchaseDetailPage() {
         if (storedPurchases) {
           try {
             const parsedPurchases: Purchase[] = JSON.parse(storedPurchases);
+            setAllPurchases(parsedPurchases);
+
             const foundPurchase = parsedPurchases.find(
               (p) => p.id === purchaseId
             );
@@ -153,6 +174,96 @@ export default function PurchaseDetailPage() {
     }
   }, [purchaseId]);
 
+  // Calculate spending analytics for the store and category
+  useEffect(() => {
+    if (purchase && purchase.store && allPurchases.length > 0) {
+      const now = new Date();
+      const currentMonth = startOfMonth(now);
+      const previousMonth = startOfMonth(subMonths(now, 1));
+      const twoMonthsAgo = startOfMonth(subMonths(now, 2));
+
+      // Filter purchases by store and time periods
+      const storeCurrentMonth = allPurchases
+        .filter(
+          (p) =>
+            p.store === purchase.store &&
+            isWithinInterval(parseISO(p.date), {
+              start: currentMonth,
+              end: now,
+            })
+        )
+        .reduce((sum, p) => sum + p.amount, 0);
+
+      const storePreviousMonth = allPurchases
+        .filter(
+          (p) =>
+            p.store === purchase.store &&
+            isWithinInterval(parseISO(p.date), {
+              start: previousMonth,
+              end: currentMonth,
+            })
+        )
+        .reduce((sum, p) => sum + p.amount, 0);
+
+      const storeTwoMonthsAgo = allPurchases
+        .filter(
+          (p) =>
+            p.store === purchase.store &&
+            isWithinInterval(parseISO(p.date), {
+              start: twoMonthsAgo,
+              end: previousMonth,
+            })
+        )
+        .reduce((sum, p) => sum + p.amount, 0);
+
+      setStoreTotals({
+        currentMonth: storeCurrentMonth,
+        previousMonth: storePreviousMonth,
+        twoMonthsAgo: storeTwoMonthsAgo,
+      });
+
+      // Filter purchases by category and time periods
+      const categoryCurrentMonth = allPurchases
+        .filter(
+          (p) =>
+            p.label === purchase.label &&
+            isWithinInterval(parseISO(p.date), {
+              start: currentMonth,
+              end: now,
+            })
+        )
+        .reduce((sum, p) => sum + p.amount, 0);
+
+      const categoryPreviousMonth = allPurchases
+        .filter(
+          (p) =>
+            p.label === purchase.label &&
+            isWithinInterval(parseISO(p.date), {
+              start: previousMonth,
+              end: currentMonth,
+            })
+        )
+        .reduce((sum, p) => sum + p.amount, 0);
+
+      const categoryTwoMonthsAgo = allPurchases
+        .filter(
+          (p) =>
+            p.label === purchase.label &&
+            isWithinInterval(parseISO(p.date), {
+              start: twoMonthsAgo,
+              end: previousMonth,
+            })
+        )
+        .reduce((sum, p) => sum + p.amount, 0);
+
+      setCategoryTotals({
+        currentMonth: categoryCurrentMonth,
+        previousMonth: categoryPreviousMonth,
+        twoMonthsAgo: categoryTwoMonthsAgo,
+      });
+    }
+  }, [purchase, allPurchases]);
+
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-6">
@@ -182,6 +293,10 @@ export default function PurchaseDetailPage() {
     day: "numeric",
   });
 
+  const currentMonthName = format(new Date(), "MMMM yyyy");
+  const previousMonthName = format(subMonths(new Date(), 1), "MMMM yyyy");
+  const twoMonthsAgoName = format(subMonths(new Date(), 2), "MMMM yyyy");
+
   return (
     <div className="container mx-auto px-4 py-6">
       <Button variant="ghost" onClick={() => router.back()} className="mb-4">
@@ -205,38 +320,159 @@ export default function PurchaseDetailPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="mb-4">
-              <h3 className="font-semibold mb-2">Store</h3>
-              <p>{purchase.store}</p>
-            </div>
+            <Tabs defaultValue="details">
+              <TabsList className="mb-4">
+                <TabsTrigger value="details">Details</TabsTrigger>
+                <TabsTrigger value="analysis">Analysis</TabsTrigger>
+              </TabsList>
 
-            <h3 className="font-semibold mb-2">Items</h3>
-            <div className="border rounded-md overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-muted">
-                  <tr>
-                    <th className="text-left p-2">Item</th>
-                    <th className="text-right p-2">Price</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {purchase.items?.map((item, index) => (
-                    <tr key={index} className="border-t">
-                      <td className="p-2">{item.name}</td>
-                      <td className="text-right p-2">
-                        ${item.price.toFixed(2)}
-                      </td>
-                    </tr>
-                  ))}
-                  <tr className="border-t bg-muted">
-                    <td className="p-2 font-semibold">Total</td>
-                    <td className="text-right p-2 font-semibold">
-                      ${purchase.amount.toFixed(2)}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+              <TabsContent value="details">
+                <div className="mb-4">
+                  <h3 className="font-semibold mb-2">Store</h3>
+                  <p>{purchase.store}</p>
+                </div>
+
+                <h3 className="font-semibold mb-2">Items</h3>
+                <div className="border rounded-md overflow-hidden">
+                  <table className="w-full">
+                    <thead className="bg-muted">
+                      <tr>
+                        <th className="text-left p-2">Item</th>
+                        <th className="text-right p-2">Price</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {purchase.items?.map((item, index) => (
+                        <tr key={index} className="border-t">
+                          <td className="p-2">{item.name}</td>
+                          <td className="text-right p-2">
+                            ${item.price.toFixed(2)}
+                          </td>
+                        </tr>
+                      ))}
+                      <tr className="border-t bg-muted">
+                        <td className="p-2 font-semibold">Total</td>
+                        <td className="text-right p-2 font-semibold">
+                          ${purchase.amount.toFixed(2)}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="analysis">
+                <div className="space-y-6">
+                  {purchase.store && (
+                    <div>
+                      <h3 className="text-lg font-semibold mb-3">
+                        Spending at {purchase.store}
+                      </h3>
+                      <div className="grid grid-cols-3 gap-4">
+                        <Card>
+                          <CardHeader className="py-3">
+                            <CardTitle className="text-sm">
+                              {twoMonthsAgoName}
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <p className="text-2xl font-bold">
+                              ${storeTotals.twoMonthsAgo.toFixed(2)}
+                            </p>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardHeader className="py-3">
+                            <CardTitle className="text-sm">
+                              {previousMonthName}
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <p className="text-2xl font-bold">
+                              ${storeTotals.previousMonth.toFixed(2)}
+                            </p>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardHeader className="py-3">
+                            <CardTitle className="text-sm">
+                              {currentMonthName}
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="flex items-center">
+                              <p className="text-2xl font-bold">
+                                ${storeTotals.currentMonth.toFixed(2)}
+                              </p>
+                              {storeTotals.currentMonth >
+                              storeTotals.previousMonth ? (
+                                <ArrowUp className="ml-2 h-5 w-5 text-red-500" />
+                              ) : storeTotals.currentMonth <
+                                storeTotals.previousMonth ? (
+                                <ArrowDown className="ml-2 h-5 w-5 text-green-500" />
+                              ) : null}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3">
+                      Spending on {purchase.label}
+                    </h3>
+                    <div className="grid grid-cols-3 gap-4">
+                      <Card>
+                        <CardHeader className="py-3">
+                          <CardTitle className="text-sm">
+                            {twoMonthsAgoName}
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-2xl font-bold">
+                            ${categoryTotals.twoMonthsAgo.toFixed(2)}
+                          </p>
+                        </CardContent>
+                      </Card>
+                      <Card>
+                        <CardHeader className="py-3">
+                          <CardTitle className="text-sm">
+                            {previousMonthName}
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-2xl font-bold">
+                            ${categoryTotals.previousMonth.toFixed(2)}
+                          </p>
+                        </CardContent>
+                      </Card>
+                      <Card>
+                        <CardHeader className="py-3">
+                          <CardTitle className="text-sm">
+                            {currentMonthName}
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="flex items-center">
+                            <p className="text-2xl font-bold">
+                              ${categoryTotals.currentMonth.toFixed(2)}
+                            </p>
+                            {categoryTotals.currentMonth >
+                            categoryTotals.previousMonth ? (
+                              <ArrowUp className="ml-2 h-5 w-5 text-red-500" />
+                            ) : categoryTotals.currentMonth <
+                              categoryTotals.previousMonth ? (
+                              <ArrowDown className="ml-2 h-5 w-5 text-green-500" />
+                            ) : null}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
       </div>

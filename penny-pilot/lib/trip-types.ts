@@ -18,6 +18,7 @@ export interface TripEvent {
   description: string;
   date: string;
   time: string;
+  endTime: string;
   cost: number;
 }
 
