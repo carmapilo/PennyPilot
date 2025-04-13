@@ -1,49 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// Mock function to simulate receipt scanning
-function mockReceiptProcessing(): {
-  store: string;
-  items: Array<{ name: string; price: number }>;
-} {
-  // Randomly select a store from these options
-  const stores = [
-    "Walmart",
-    "Target",
-    "Kroger",
-    "Whole Foods",
-    "Trader Joe's",
-    "Publix",
-    "Costco",
-  ];
-
-  const storeIndex = Math.floor(Math.random() * stores.length);
-  const store = stores[storeIndex];
-
-  // Generate random items based on the store
+// Mock function to simulate receipt processing
+function mockReceiptProcessing(): Array<{ item: string; price: number }> {
+  // Generate random items
   const numItems = Math.floor(Math.random() * 8) + 2; // 2-10 items
-  const items: Array<{ name: string; price: number }> = [];
+  const items: Array<{ item: string; price: number }> = [];
 
   const groceryItems = [
-    { name: "Milk", priceRange: [2.99, 5.99] },
-    { name: "Bread", priceRange: [2.49, 4.99] },
-    { name: "Eggs", priceRange: [3.49, 6.99] },
-    { name: "Bananas", priceRange: [0.99, 2.99] },
-    { name: "Apples", priceRange: [3.99, 6.99] },
-    { name: "Chicken Breast", priceRange: [7.99, 12.99] },
-    { name: "Ground Beef", priceRange: [5.99, 10.99] },
-    { name: "Pasta", priceRange: [1.49, 3.99] },
-    { name: "Tomato Sauce", priceRange: [1.99, 4.99] },
-    { name: "Cereal", priceRange: [3.49, 6.99] },
-    { name: "Orange Juice", priceRange: [2.99, 5.99] },
-    { name: "Coffee", priceRange: [6.99, 12.99] },
-    { name: "Cheese", priceRange: [4.99, 8.99] },
-    { name: "Yogurt", priceRange: [1.99, 4.99] },
-    { name: "Potato Chips", priceRange: [2.99, 4.99] },
-    { name: "Ice Cream", priceRange: [3.99, 7.99] },
-    { name: "Frozen Pizza", priceRange: [4.99, 9.99] },
-    { name: "Paper Towels", priceRange: [2.99, 6.99] },
-    { name: "Toilet Paper", priceRange: [4.99, 12.99] },
-    { name: "Laundry Detergent", priceRange: [7.99, 15.99] },
+    { item: "Milk", priceRange: [2.99, 5.99] },
+    { item: "Bread", priceRange: [2.49, 4.99] },
+    { item: "Eggs", priceRange: [3.49, 6.99] },
+    { item: "Bananas", priceRange: [0.99, 2.99] },
+    { item: "Apples", priceRange: [3.99, 6.99] },
+    { item: "Chicken Breast", priceRange: [7.99, 12.99] },
+    { item: "Ground Beef", priceRange: [5.99, 10.99] },
+    { item: "Pasta", priceRange: [1.49, 3.99] },
+    { item: "Tomato Sauce", priceRange: [1.99, 4.99] },
+    { item: "Cereal", priceRange: [3.49, 6.99] },
+    { item: "Orange Juice", priceRange: [2.99, 5.99] },
+    { item: "Coffee", priceRange: [6.99, 12.99] },
+    { item: "Cheese", priceRange: [4.99, 8.99] },
+    { item: "Yogurt", priceRange: [1.99, 4.99] },
+    { item: "Potato Chips", priceRange: [2.99, 4.99] },
+    { item: "Ice Cream", priceRange: [3.99, 7.99] },
+    { item: "Frozen Pizza", priceRange: [4.99, 9.99] },
+    { item: "Paper Towels", priceRange: [2.99, 6.99] },
+    { item: "Toilet Paper", priceRange: [4.99, 12.99] },
+    { item: "Laundry Detergent", priceRange: [7.99, 15.99] },
   ];
 
   // Randomly select items without repeating
@@ -62,15 +45,12 @@ function mockReceiptProcessing(): {
     );
 
     items.push({
-      name: item.name,
+      item: item.item,
       price: price,
     });
   });
 
-  return {
-    store,
-    items,
-  };
+  return items;
 }
 
 export async function POST(request: NextRequest) {
@@ -84,9 +64,10 @@ export async function POST(request: NextRequest) {
     // Simulate processing delay
     await new Promise((resolve) => setTimeout(resolve, 1500));
 
-    const receiptData = mockReceiptProcessing();
+    const receiptItems = mockReceiptProcessing();
 
-    return NextResponse.json(receiptData, { status: 200 });
+    // Return just the array of items
+    return NextResponse.json(receiptItems, { status: 200 });
   } catch (error) {
     console.error("Error processing receipt:", error);
     return NextResponse.json(

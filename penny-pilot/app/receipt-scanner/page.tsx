@@ -35,9 +35,8 @@ import { Label } from "@/components/ui/label";
 
 // Interface for the backend API response
 interface ReceiptData {
-  store: string;
   items: Array<{
-    name: string;
+    item: string;
     price: number;
   }>;
 }
@@ -87,7 +86,7 @@ export default function ReceiptScannerPage() {
       formData.append("receipt", file);
 
       // Send to backend API
-      const response = await fetch("http://127.0.0.1:8000/test", {
+      const response = await fetch("/api/scan-receipt", {
         method: "POST",
         body: formData,
       });
@@ -97,9 +96,23 @@ export default function ReceiptScannerPage() {
       }
 
       // Parse the response data
-      const receiptData: ReceiptData = await response.json();
+      const responseData = await response.json();
+      console.log("API Response:", responseData); // Debug: log the raw response
+
+      // Create receipt data with default store as Publix
+      const receiptData: ReceiptData = {
+        items: Array.isArray(responseData)
+          ? responseData.map((item) => ({
+              item: item.item,
+              price: item.price,
+            }))
+          : [],
+      };
+
+      console.log("Receipt Data:", receiptData); // Debug: log the receipt data
+
       setScannedData(receiptData);
-      setStoreName(receiptData.store);
+      setStoreName("Publix"); // Set default store name
 
       // Calculate total amount from items
       const totalAmount = receiptData.items.reduce(
@@ -110,12 +123,15 @@ export default function ReceiptScannerPage() {
       // Create a new purchase object
       const newPurchase = {
         id: Date.now().toString(), // Generate a unique ID
-        name: receiptData.store,
+        name: "Publix", // Default store name
         date: new Date().toISOString().split("T")[0], // Current date in YYYY-MM-DD format
         amount: totalAmount,
         label: "", // No default label
-        store: receiptData.store,
-        items: receiptData.items,
+        store: "Publix", // Default store name
+        items: receiptData.items.map((item) => ({
+          name: item.item,
+          price: item.price,
+        })),
       };
 
       setPurchaseData(newPurchase);
@@ -367,18 +383,24 @@ export default function ReceiptScannerPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {purchaseData.items.map((item, index) => (
+                      {purchaseData?.items?.map((item, index) => (
                         <tr key={index} className="border-t">
                           <td className="p-2">{item.name}</td>
                           <td className="text-right p-2">
                             ${item.price.toFixed(2)}
                           </td>
                         </tr>
-                      ))}
+                      )) || (
+                        <tr>
+                          <td colSpan={2} className="p-2 text-center">
+                            No items found
+                          </td>
+                        </tr>
+                      )}
                       <tr className="border-t bg-muted">
                         <td className="p-2 font-semibold">Total</td>
                         <td className="text-right p-2 font-semibold">
-                          ${purchaseData.amount.toFixed(2)}
+                          ${purchaseData?.amount?.toFixed(2) || "0.00"}
                         </td>
                       </tr>
                     </tbody>
