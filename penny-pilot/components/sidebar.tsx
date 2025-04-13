@@ -81,7 +81,7 @@ export function Sidebar() {
           </nav>
         </ScrollArea>
         <div className="border-t p-4">
-          <p className="text-xs text-muted-foreground">© 2023 Penny Pilot</p>
+          <p className="text-xs text-muted-foreground">© 2025 Penny Pilot</p>
         </div>
       </div>
     </>
