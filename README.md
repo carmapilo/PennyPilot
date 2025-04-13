@@ -1,4 +1,4 @@
-# ExpenseWise
+# Penny Pilot
 
 Hey! This is our project for HackaBull 2025. We built this app because we wanted a centralized hub where we can manage our finances and plan for the future. It's pretty cool, you can scan receipts, plan vacation trips, and even make a shopping list based on recipe descriptions
 
