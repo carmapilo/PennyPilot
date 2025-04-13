@@ -1,16 +1,11 @@
 "use client";
 
 import { format } from "date-fns";
-import { useState } from "react";
-import { Edit2, Check } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Trash2 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -26,6 +21,8 @@ interface PurchaseItemProps {
   onClick: () => void;
   onLabelChange?: (id: string, newLabel: string) => void;
   isEditMode?: boolean;
+  onDeleteClick?: (e: React.MouseEvent) => void;
+  hideActions?: boolean;
 }
 
 export function PurchaseItem({
@@ -33,9 +30,15 @@ export function PurchaseItem({
   onClick,
   onLabelChange,
   isEditMode = false,
+  onDeleteClick,
+  hideActions = false,
 }: PurchaseItemProps) {
-  const [isLabelPopoverOpen, setIsLabelPopoverOpen] = useState(false);
-  const [selectedLabel, setSelectedLabel] = useState(purchase.label);
+  const [selectedLabel, setSelectedLabel] = useState(purchase.label || "none");
+
+  // Update selectedLabel when purchase.label changes (e.g., when a different purchase is shown)
+  useEffect(() => {
+    setSelectedLabel(purchase.label || "none");
+  }, [purchase.label]);
 
   // Map labels to colors
   const labelColors: Record<string, string> = {
@@ -46,30 +49,43 @@ export function PurchaseItem({
     Shopping: "bg-indigo-100 text-indigo-800 hover:bg-indigo-200",
     Bills: "bg-red-100 text-red-800 hover:bg-red-200",
     Other: "bg-gray-100 text-gray-800 hover:bg-gray-200",
+    none: "bg-gray-100 text-gray-800 hover:bg-gray-200",
     "": "bg-gray-100 text-gray-800 hover:bg-gray-200",
   };
 
   const badgeClass =
-    labelColors[purchase.label] ||
+    labelColors[purchase.label || "none"] ||
     "bg-gray-100 text-gray-800 hover:bg-gray-200";
 
-  const handleLabelClick = (e: React.MouseEvent) => {
-    if (isEditMode) {
-      e.stopPropagation(); // Prevent triggering the card onClick
+  const handleClick = (e: React.MouseEvent) => {
+    if (isEditMode || hideActions) {
+      e.stopPropagation();
+    } else {
+      onClick();
     }
   };
 
-  const handleLabelChange = () => {
-    if (onLabelChange && selectedLabel !== purchase.label) {
-      onLabelChange(purchase.id, selectedLabel);
+  const handleLabelClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent triggering the card onClick
+  };
+
+  const handleLabelChange = (newLabel: string) => {
+    setSelectedLabel(newLabel);
+    if (onLabelChange) {
+      // Convert "none" to empty string when sending to parent component
+      const labelToSave = newLabel === "none" ? "" : newLabel;
+      if (labelToSave !== purchase.label) {
+        onLabelChange(purchase.id, labelToSave);
+      }
     }
-    setIsLabelPopoverOpen(false);
   };
 
   return (
     <Card
-      className="cursor-pointer hover:shadow-md transition-shadow"
-      onClick={onClick}
+      className={`hover:shadow-md transition-shadow ${
+        isEditMode || hideActions ? "" : "cursor-pointer"
+      }`}
+      onClick={handleClick}
     >
       <CardContent className="p-4 flex justify-between items-center">
         <div className="flex flex-col">
@@ -78,27 +94,42 @@ export function PurchaseItem({
             {format(new Date(purchase.date), "MMM d, yyyy")}
           </span>
         </div>
-        <div className="flex items-center gap-3">
-          <Popover
-            open={isLabelPopoverOpen}
-            onOpenChange={setIsLabelPopoverOpen}
-          >
-            <PopoverTrigger asChild onClick={handleLabelClick}>
-              <div className="flex items-center gap-1 cursor-pointer">
-                <Badge variant="outline" className={badgeClass}>
-                  {purchase.label || "No Label"}
-                </Badge>
-                <Edit2 className="h-3 w-3 text-muted-foreground" />
-              </div>
-            </PopoverTrigger>
-            <PopoverContent className="w-48 p-3" align="end">
-              <div className="space-y-3">
-                <h4 className="font-medium text-sm">Edit Category</h4>
-                <Select value={selectedLabel} onValueChange={setSelectedLabel}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a category" />
+
+        <div
+          className="flex items-center justify-end"
+          style={{ minWidth: "180px" }}
+        >
+          {/* Simple badge for the dashboard view with no actions */}
+          {hideActions ? (
+            <div className="flex gap-3 items-center">
+              <Badge variant="outline" className={badgeClass}>
+                {purchase.label || "No Label"}
+              </Badge>
+              <span className="font-semibold">
+                ${purchase.amount.toFixed(2)}
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3">
+              {/* Width-constrained select to avoid layout shifts */}
+              <div className="w-32">
+                <Select
+                  value={selectedLabel}
+                  onValueChange={handleLabelChange}
+                  disabled={!isEditMode}
+                >
+                  <SelectTrigger
+                    className={`h-8 px-2 py-0 text-xs ${
+                      isEditMode
+                        ? ""
+                        : "border-0 bg-transparent hover:bg-transparent focus:ring-0"
+                    }`}
+                    onClick={handleLabelClick}
+                  >
+                    <SelectValue placeholder="No Label" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="none">No Label</SelectItem>
                     <SelectItem value="Food">Food</SelectItem>
                     <SelectItem value="Transportation">
                       Transportation
@@ -110,17 +141,24 @@ export function PurchaseItem({
                     <SelectItem value="Other">Other</SelectItem>
                   </SelectContent>
                 </Select>
-                <Button
-                  className="w-full"
-                  size="sm"
-                  onClick={handleLabelChange}
-                >
-                  <Check className="mr-1 h-3 w-3" /> Save
-                </Button>
               </div>
-            </PopoverContent>
-          </Popover>
-          <span className="font-semibold">${purchase.amount.toFixed(2)}</span>
+
+              <span className="font-semibold">
+                ${purchase.amount.toFixed(2)}
+              </span>
+
+              {isEditMode && onDeleteClick && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-destructive"
+                  onClick={onDeleteClick}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

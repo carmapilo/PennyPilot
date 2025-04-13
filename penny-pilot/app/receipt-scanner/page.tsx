@@ -87,7 +87,7 @@ export default function ReceiptScannerPage() {
       formData.append("receipt", file);
 
       // Send to backend API
-      const response = await fetch("/api/scan-receipt", {
+      const response = await fetch("http://127.0.0.1:8000/test", {
         method: "POST",
         body: formData,
       });

@@ -122,7 +122,8 @@ export function PurchaseHistory({ limit }: PurchaseHistoryProps) {
   const filteredPurchases = purchases.filter(
     (purchase) =>
       purchase.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      purchase.label.toLowerCase().includes(searchQuery.toLowerCase())
+      (purchase.label &&
+        purchase.label.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   const displayPurchases = limit
@@ -226,23 +227,14 @@ export function PurchaseHistory({ limit }: PurchaseHistoryProps) {
       <div className="space-y-2">
         {displayPurchases.length > 0 ? (
           displayPurchases.map((purchase) => (
-            <div key={purchase.id} className="relative group">
+            <div key={purchase.id} className="relative">
               <PurchaseItem
                 purchase={purchase}
                 onClick={() => handlePurchaseClick(purchase.id)}
                 onLabelChange={handleLabelChange}
                 isEditMode={isEditMode}
+                onDeleteClick={(e) => confirmDeletePurchase(purchase, e)}
               />
-              {isEditMode && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 transition-opacity"
-                  onClick={(e) => confirmDeletePurchase(purchase, e)}
-                >
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
-              )}
             </div>
           ))
         ) : (
